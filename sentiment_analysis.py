@@ -8,11 +8,12 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from nltk import pos_tag
 import streamlit as st
+import nltk
 
-# w2v_model = Word2Vec.load("app/resources/word2vec.model")
-# clf = joblib.load('app/resources/random_forest_classifier.pkl')
-# le = joblib.load('app/resources/label_encoder.pkl')
-
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
+nltk.download('averaged_perceptron_tagger')
 
 sentiment_pipeline = pipeline("sentiment-analysis")
 
