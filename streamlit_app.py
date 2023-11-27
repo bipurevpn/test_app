@@ -40,7 +40,7 @@ class StreamlitApp:
                 st.session_state['label_encoder'] = joblib.load(uploaded_label_encoder)
 
         if st.session_state['random_forest_classifier'] is None:
-            uploaded_random_forest_classifier = st.sidebar.file_uploader("Upload the Classifier file", type=["pkl"], key='random_forest_classifier_uploader')
+            uploaded_random_forest_classifier = st.sidebar.file_uploader("Upload the Classifier file", type=["joblib"], key='random_forest_classifier_uploader')
             if uploaded_random_forest_classifier is not None:
                 st.session_state['random_forest_classifier'] = joblib.load(uploaded_random_forest_classifier)
 
