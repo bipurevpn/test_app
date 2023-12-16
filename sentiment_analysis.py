@@ -249,13 +249,13 @@ class SentimentAnalysis:
 
 
     @staticmethod
-    def join_files(output_filename, number_of_parts):
+    def join_files(input_directory, output_filename, number_of_parts):
         """
         Reassemble split model files into a single file.
         """
         with open(output_filename, 'wb') as output_file:
             for i in range(1, number_of_parts + 1):
-                part_filename = f'encrypted_classifier.joblib_part{i}'
+                part_filename = os.path.join(input_directory, f'encrypted_classifier_part{i}.joblib')
                 with open(part_filename, 'rb') as part_file:
                     output_file.write(part_file.read())
 
