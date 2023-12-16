@@ -10,6 +10,8 @@ from transformers import pipeline
 import joblib
 from gensim.models import Word2Vec
 import streamlit as st
+import os
+from cryptography.fernet import Fernet
 
 nltk.download('punkt')
 nltk.download('stopwords')
@@ -230,22 +232,69 @@ class SentimentAnalysis:
         pattern = r'\b' + re.escape(keyword) + r'\b'
         return re.search(pattern, text, re.IGNORECASE) is not None
 
+#    @staticmethod
+#    def load_models_and_predict(comment):
+#        # Load models from the session state instead of disk
+#        le = st.session_state['label_encoder']
+#        clf = st.session_state['random_forest_classifier']
+#        w2v_model = st.session_state['word2vec_model']
+        
+#       sentiment = SentimentAnalysis.get_sentiment(comment)
+#        preprocessed_comment = SentimentAnalysis.preprocess_text(comment)
+#        comment_vector = SentimentAnalysis.comment_to_vec(preprocessed_comment, w2v_model)
+#        predicted_tag_encoded = clf.predict([comment_vector])
+#        predicted_tag = le.inverse_transform(predicted_tag_encoded)
+#        return predicted_tag[0], sentiment
+
+
+
+    @staticmethod
+    def join_files(input_directory, output_filename, number_of_parts):
+        """
+        Reassemble split model files into a single file.
+        """
+        with open(output_filename, 'wb') as output_file:
+            for i in range(1, number_of_parts + 1):
+                part_filename = os.path.join(input_directory, f'encrypted_model_part{i}.joblib')
+                with open(part_filename, 'rb') as part_file:
+                    output_file.write(part_file.read())
+
+    @staticmethod
+    def decrypt_model(encrypted_model_filename, decryption_key):
+        """
+        Decrypt the model file using the provided key.
+        """
+        cipher_suite = Fernet(decryption_key)
+        with open(encrypted_model_filename, 'rb') as encrypted_file:
+            encrypted_data = encrypted_file.read()
+        decrypted_data = cipher_suite.decrypt(encrypted_data)
+        return decrypted_data
+
     @staticmethod
     def load_models_and_predict(comment):
-        # Load models from the session state instead of disk
-        le = st.session_state['label_encoder']
-        clf = st.session_state['random_forest_classifier']
-        w2v_model = st.session_state['word2vec_model']
+        encryption_key = st.session_state['encryption_key']
+        # Reassemble the split encrypted model parts
+        SentimentAnalysis.join_files('encrypted_model_parts', 'encrypted_model_reassembled.joblib', 10)
+
+        # Decrypt the reassembled model
+        decrypted_data = SentimentAnalysis.decrypt_model('encrypted_model_reassembled.joblib', encryption_key)
+
+        # Load the decrypted model
+        with open('decrypted_classifier.joblib', 'wb') as decrypted_file:
+            decrypted_file.write(decrypted_data)
+        clf = joblib.load('decrypted_classifier.joblib')
         
+        # Load other models from the session state
+        le = st.session_state['label_encoder']
+        w2v_model = st.session_state['word2vec_model']
+
+        # Sentiment analysis and prediction logic
         sentiment = SentimentAnalysis.get_sentiment(comment)
         preprocessed_comment = SentimentAnalysis.preprocess_text(comment)
         comment_vector = SentimentAnalysis.comment_to_vec(preprocessed_comment, w2v_model)
         predicted_tag_encoded = clf.predict([comment_vector])
         predicted_tag = le.inverse_transform(predicted_tag_encoded)
         return predicted_tag[0], sentiment
-
-
-
 
 
 
