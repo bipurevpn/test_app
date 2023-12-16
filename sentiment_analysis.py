@@ -275,7 +275,7 @@ class SentimentAnalysis:
     def load_models_and_predict(comment):
         encryption_key = st.session_state['encryption_key']
         # Reassemble the split encrypted model parts
-        SentimentAnalysis.join_files('encrypted_model_reassembled.joblib', 10)
+        SentimentAnalysis.join_files('.', 'encrypted_model_reassembled.joblib', 10)
 
         # Decrypt the reassembled model
         decrypted_data = SentimentAnalysis.decrypt_model('encrypted_model_reassembled.joblib', encryption_key)
