@@ -249,15 +249,16 @@ class SentimentAnalysis:
 
 
     @staticmethod
-    def join_files(input_directory, output_filename, number_of_parts):
+    def join_files(output_filename, number_of_parts):
         """
         Reassemble split model files into a single file.
         """
         with open(output_filename, 'wb') as output_file:
             for i in range(1, number_of_parts + 1):
-                part_filename = os.path.join(input_directory, f'encrypted_model_part{i}.joblib')
+                part_filename = f'encrypted_classifier.joblib_part{i}'
                 with open(part_filename, 'rb') as part_file:
                     output_file.write(part_file.read())
+
 
     @staticmethod
     def decrypt_model(encrypted_model_filename, decryption_key):
@@ -274,7 +275,7 @@ class SentimentAnalysis:
     def load_models_and_predict(comment):
         encryption_key = st.session_state['encryption_key']
         # Reassemble the split encrypted model parts
-        SentimentAnalysis.join_files('encrypted_model_parts', 'encrypted_model_reassembled.joblib', 10)
+        SentimentAnalysis.join_files('encrypted_model_reassembled.joblib', 10)
 
         # Decrypt the reassembled model
         decrypted_data = SentimentAnalysis.decrypt_model('encrypted_model_reassembled.joblib', encryption_key)
