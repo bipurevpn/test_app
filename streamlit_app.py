@@ -18,7 +18,7 @@ class StreamlitApp:
         if 'reset' not in st.session_state:
             st.session_state['reset'] = False
         # Initialize the model components in session state if not already present
-        for key in ['label_encoder', 'word2vec_model', 'encryption_key']:
+        for key in ['label_encoder', 'word2vec_model', 'random_forest_classifier']:
             if key not in st.session_state:
                 st.session_state[key] = None
 
@@ -26,7 +26,7 @@ class StreamlitApp:
         if st.sidebar.button('Reset'):
             st.session_state['reset'] = True
             # Reset the model components
-            for key in ['label_encoder', 'word2vec_model', 'encryption_key']:
+            for key in ['label_encoder', 'word2vec_model', 'random_forest_classifier']:
                 st.session_state[key] = None
             st.experimental_rerun()
 
@@ -39,10 +39,10 @@ class StreamlitApp:
             if uploaded_label_encoder is not None:
                 st.session_state['label_encoder'] = joblib.load(uploaded_label_encoder)
 
-#        if st.session_state['random_forest_classifier'] is None:
-#            uploaded_random_forest_classifier = st.sidebar.file_uploader("Upload the Classifier file", type=["joblib"], key='random_forest_classifier_uploader')
-#            if uploaded_random_forest_classifier is not None:
-#                st.session_state['random_forest_classifier'] = joblib.load(uploaded_random_forest_classifier)
+        if st.session_state['random_forest_classifier'] is None:
+            uploaded_random_forest_classifier = st.sidebar.file_uploader("Upload the Classifier file", type=["joblib"], key='random_forest_classifier_uploader')
+            if uploaded_random_forest_classifier is not None:
+                st.session_state['random_forest_classifier'] = joblib.load(uploaded_random_forest_classifier)
 
         if st.session_state['word2vec_model'] is None:
             uploaded_word2vec_model = st.sidebar.file_uploader("Upload the Word2Vec Model file", type=["model"], key='word2vec_model_uploader')
@@ -53,12 +53,12 @@ class StreamlitApp:
                     st.session_state['word2vec_model'] = Word2Vec.load(tmp_file.name)
                     os.unlink(tmp_file.name)
 
-        if st.session_state['encryption_key'] is None:
-            encryption_key = st.sidebar.text_input("Enter the encryption key", type="password", key='encryption_key_input')
-            if encryption_key:
-                st.session_state['encryption_key'] = encryption_key
+#        if st.session_state['encryption_key'] is None:
+#            encryption_key = st.sidebar.text_input("Enter the encryption key", type="password", key='encryption_key_input')
+#            if encryption_key:
+#                st.session_state['encryption_key'] = encryption_key
 
-        if uploaded_file is not None and all(st.session_state[key] is not None for key in ['label_encoder', 'word2vec_model', 'encryption_key']):
+        if uploaded_file is not None and all(st.session_state[key] is not None for key in ['label_encoder', 'word2vec_model', 'random_forest_classifier']):
             comments_file = pd.read_csv(uploaded_file)
             st.subheader("Uploaded Data:")
             st.dataframe(comments_file)
