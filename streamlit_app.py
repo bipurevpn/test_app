@@ -42,13 +42,14 @@ def download_model_from_google_drive(link):
                 if chunk:  # filter out keep-alive new chunks
                     tmp_file.write(chunk)
             tmp_file_path = tmp_file.name
-        
+
         # Load the model from the temporary file
         model = joblib.load(tmp_file_path)
         return model
     else:
         st.error("Failed to download the model. Please check the link.")
         return None
+
 
 class StreamlitApp:
 
