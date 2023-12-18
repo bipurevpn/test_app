@@ -63,13 +63,13 @@ def combine_and_load_model(link1, link2):
                 os.remove(f)  # Remove temporary file
         st.write(f"Combined file: {combined_file_path}, Size: {Path(combined_file_path).stat().st_size} bytes")
 
-        # Load the model using an alternate method
+        # Load the model using the corrected method
         with open(combined_file_path, 'rb') as f:
-            model_data = f.read()
-        model = joblib.loads(model_data)
+            model = joblib.load(f)
         return model
     else:
         return None
+
 
 
 class StreamlitApp:
