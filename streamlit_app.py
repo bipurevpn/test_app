@@ -33,19 +33,26 @@ def download_model_from_google_drive(link):
     else:
         model_url = initial_url
 
-    # Download the file
     response = session.get(model_url, stream=True)
     if response.status_code == 200:
         # Save the content to a temporary file
         with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as tmp_file:
             for chunk in response.iter_content(chunk_size=32768):
-                if chunk:  # filter out keep-alive new chunks
+                if chunk:
                     tmp_file.write(chunk)
             tmp_file_path = tmp_file.name
 
+        # Debug: Check the size of the downloaded file
+        downloaded_size = os.path.getsize(tmp_file_path)
+        st.write(f"Downloaded file size: {downloaded_size} bytes")
+
         # Load the model from the temporary file
-        model = joblib.load(tmp_file_path)
-        return model
+        try:
+            model = joblib.load(tmp_file_path)
+            return model
+        except Exception as e:
+            st.error(f"Failed to load the model. Error: {str(e)}")
+            return None
     else:
         st.error("Failed to download the model. Please check the link.")
         return None
