@@ -44,15 +44,22 @@ class StreamlitApp:
 #            if uploaded_random_forest_classifier is not None:
 #                st.session_state['random_forest_classifier'] = joblib.load(uploaded_random_forest_classifier)
 
-        if st.session_state['word2vec_model'] is None:
-            uploaded_word2vec_model = st.sidebar.file_uploader("Upload the Word2Vec Model file", type=["model"], key='word2vec_model_uploader')
-            if uploaded_word2vec_model is not None:
-                # Save the uploaded file to a temporary file and load it
-                with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-                    tmp_file.write(uploaded_word2vec_model.read())
-                    st.session_state['word2vec_model'] = Word2Vec.load(tmp_file.name)
-                    os.unlink(tmp_file.name)
+#        if st.session_state['word2vec_model'] is None:
+#            uploaded_word2vec_model = st.sidebar.file_uploader("Upload the Word2Vec Model file", type=["model"], key='word2vec_model_uploader')
+#            if uploaded_word2vec_model is not None:
+#                # Save the uploaded file to a temporary file and load it
+#                with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+#                    tmp_file.write(uploaded_word2vec_model.read())
+#                    st.session_state['word2vec_model'] = Word2Vec.load(tmp_file.name)
+#                    os.unlink(tmp_file.name)
 
+        if st.session_state['word2vec_model'] is None:
+            uploaded_word2vec_model = st.sidebar.file_uploader("Upload the Word2Vec Model file", type=["joblib"], key='word2vec_model_uploader')
+            if uploaded_word2vec_model is not None:
+                # Load the uploaded joblib file directly into the session state
+                st.session_state['word2vec_model'] = joblib.load(uploaded_word2vec_model)
+
+        
 #        if st.session_state['encryption_key'] is None:
 #            encryption_key = st.sidebar.text_input("Enter the encryption key", type="password", key='encryption_key_input')
 #            if encryption_key:
