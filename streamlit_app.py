@@ -28,27 +28,31 @@ def download_file_from_google_drive(link):
             token = value
             break
 
-    # If there is a token, append it to the download URL
     if token:
+        st.write("Found confirmation token, requesting download...")
         model_url = f"https://drive.google.com/uc?export=download&id={file_id}&confirm={token}"
     else:
         model_url = initial_url
 
     # Download the file
+    st.write(f"Downloading file from URL: {model_url}")
     response = session.get(model_url, stream=True)
     if response.status_code == 200:
         # Save the content to a temporary file
         temp_file = tempfile.NamedTemporaryFile(suffix=".joblib", delete=False)
+        total_bytes_downloaded = 0
         for chunk in response.iter_content(chunk_size=32768):
-            if chunk:  # filter out keep-alive new chunks
+            if chunk:
                 temp_file.write(chunk)
+                total_bytes_downloaded += len(chunk)
         temp_file_path = temp_file.name
         temp_file.close()
-        st.write(f"Downloaded file: {temp_file_path}, Size: {Path(temp_file_path).stat().st_size} bytes")
+        st.write(f"Downloaded file: {temp_file_path}, Size: {total_bytes_downloaded} bytes")
         return temp_file_path
     else:
-        st.error("Failed to download the model. Please check the link.")
+        st.error(f"Failed to download the model. HTTP Status Code: {response.status_code}.")
         return None
+
 
 def combine_and_load_model(link1, link2):
     file_path1 = download_file_from_google_drive(link1)
