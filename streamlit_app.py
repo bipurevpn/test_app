@@ -8,53 +8,55 @@ import tempfile
 import os
 import joblib
 from bs4 import BeautifulSoup
+from pathlib import Path
 
-def download_model_from_google_drive(link):
-    # Extract the file ID from the Google Drive link
-    file_id = link.split('/d/')[1].split('/')[0]
-    initial_url = f"https://drive.google.com/uc?export=download&id={file_id}"
 
-    # Session for maintaining persistent connection
-    session = requests.Session()
+def download_and_combine_google_drive_files(link1, link2):
+    # Function to download a single file
+    def download_file(link):
+        file_id = link.split('/d/')[1].split('/')[0]
+        initial_url = f"https://drive.google.com/uc?export=download&id={file_id}"
 
-    # Get the first response
-    response = session.get(initial_url, stream=True)
-    token = None
+        session = requests.Session()
+        response = session.get(initial_url, stream=True)
+        token = None
 
-    # Check if there is a confirmation token (for large files)
-    for key, value in response.cookies.items():
-        if key.startswith('download_warning'):
-            token = value
-            break
+        for key, value in response.cookies.items():
+            if key.startswith('download_warning'):
+                token = value
+                break
 
-    # If there is a token, append it to the download URL
-    if token:
-        model_url = f"https://drive.google.com/uc?export=download&id={file_id}&confirm={token}"
-    else:
-        model_url = initial_url
+        if token:
+            model_url = f"https://drive.google.com/uc?export=download&id={file_id}&confirm={token}"
+        else:
+            model_url = initial_url
 
-    response = session.get(model_url, stream=True)
-    if response.status_code == 200:
-        # Save the content to a temporary file
-        with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as tmp_file:
+        response = session.get(model_url, stream=True)
+        if response.status_code == 200:
+            temp_file = tempfile.NamedTemporaryFile(suffix=".joblib", delete=False)
             for chunk in response.iter_content(chunk_size=32768):
                 if chunk:
-                    tmp_file.write(chunk)
-            tmp_file_path = tmp_file.name
-
-        # Debug: Check the size of the downloaded file
-        downloaded_size = os.path.getsize(tmp_file_path)
-        st.write(f"Downloaded file size: {downloaded_size} bytes")
-
-        # Load the model from the temporary file
-        try:
-            model = joblib.load(tmp_file_path)
-            return model
-        except Exception as e:
-            st.error(f"Failed to load the model. Error: {str(e)}")
+                    temp_file.write(chunk)
+            temp_file_path = temp_file.name
+            temp_file.close()
+            return temp_file_path
+        else:
             return None
+
+    # Download both files
+    file_path1 = download_file(link1)
+    file_path2 = download_file(link2)
+
+    if file_path1 and file_path2:
+        # Combine both files
+        combined_file_path = Path(tempfile.gettempdir()) / "combined_model.joblib"
+        with open(combined_file_path, 'wb') as wfd:
+            for f in [file_path1, file_path2]:
+                with open(f, 'rb') as fd:
+                    wfd.write(fd.read())
+                os.remove(f)  # Remove temporary file
+        return combined_file_path
     else:
-        st.error("Failed to download the model. Please check the link.")
         return None
 
 
