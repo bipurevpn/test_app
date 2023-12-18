@@ -249,13 +249,28 @@ class SentimentAnalysis:
 
 
     @staticmethod
-    def join_files(input_directory, output_filename, number_of_parts):
+#    def join_files(input_directory, output_filename, number_of_parts):
+#        """
+#        Reassemble split model files into a single file.
+#        """
+#        with open(output_filename, 'wb') as output_file:
+#            for i in range(1, number_of_parts + 1):
+#                part_filename = os.path.join(input_directory, f'new_joblib_classifier_part2{i}.joblib')
+#                with open(part_filename, 'rb') as part_file:
+#                    output_file.write(part_file.read())
+
+    def join_and_append_files(input_directory, output_filename, number_of_parts, uploaded_model):
         """
-        Reassemble split model files into a single file.
+        Reassemble split model files and append to the uploaded model part.
         """
         with open(output_filename, 'wb') as output_file:
+            # Write the uploaded model part first
+            uploaded_model.seek(0)
+            output_file.write(uploaded_model.read())
+
+            # Append the reassembled parts
             for i in range(1, number_of_parts + 1):
-                part_filename = os.path.join(input_directory, f'encrypted_classifier_part{i}.joblib')
+                part_filename = os.path.join(input_directory, f'new_joblib_classifier_part2_part{i}.joblib')
                 with open(part_filename, 'rb') as part_file:
                     output_file.write(part_file.read())
 
@@ -273,19 +288,24 @@ class SentimentAnalysis:
 
     @staticmethod
     def load_models_and_predict(comment):
-        encryption_key = st.session_state['encryption_key']
+        #encryption_key = st.session_state['encryption_key']
+
+        SentimentAnalysis.join_and_append_files('.', 'complete_model.joblib', 3, st.session_state['random_forest_classifier'])
+                    
         # Reassemble the split encrypted model parts
-        SentimentAnalysis.join_files('.', 'encrypted_model_reassembled.joblib', 10)
+        #SentimentAnalysis.join_files('.', 'encrypted_model_reassembled.joblib', 10)
 
-        # Decrypt the reassembled model
-        decrypted_data = SentimentAnalysis.decrypt_model('encrypted_model_reassembled.joblib', encryption_key)
+        ## Decrypt the reassembled model
+        #decrypted_data = SentimentAnalysis.decrypt_model('encrypted_model_reassembled.joblib', encryption_key)
 
-        # Load the decrypted model
-        with open('decrypted_classifier.joblib', 'wb') as decrypted_file:
-            decrypted_file.write(decrypted_data)
-        clf = joblib.load('decrypted_classifier.joblib')
+        ## Load the decrypted model
+        #with open('decrypted_classifier.joblib', 'wb') as decrypted_file:
+        #    decrypted_file.write(decrypted_data)
+        #clf = joblib.load('decrypted_classifier.joblib')
+        clf = joblib.load('complete_model.joblib')
         
         # Load other models from the session state
+        #clf = st.session_state['random_forest_classifier']
         le = st.session_state['label_encoder']
         w2v_model = st.session_state['word2vec_model']
 
