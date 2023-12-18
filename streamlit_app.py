@@ -1,11 +1,27 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO
+import requests
 from gensim.models import Word2Vec
 from sentiment_analysis import SentimentAnalysis
 import tempfile
 import os
 import joblib
+
+def download_model_from_google_drive(link):
+    # Extract the file ID from the Google Drive link
+    file_id = link.split('/d/')[1].split('/')[0]
+    model_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+
+    # Download the file
+    response = requests.get(model_url)
+    if response.status_code == 200:
+        model_file = BytesIO(response.content)
+        model = joblib.load(model_file)
+        return model
+    else:
+        st.error("Failed to download the model. Please check the link.")
+        return None
 
 class StreamlitApp:
 
@@ -66,11 +82,17 @@ class StreamlitApp:
 #                st.session_state['encryption_key'] = encryption_key
 
         
-        if st.session_state['random_forest_classifier'] is None:
-            uploaded_random_forest_classifier = st.sidebar.file_uploader("Upload the Classifier file", type=["joblib"], key='random_forest_classifier_uploader')
-            if uploaded_random_forest_classifier is not None:
-                st.session_state['random_forest_classifier'] = uploaded_random_forest_classifier
+#        if st.session_state['random_forest_classifier'] is None:
+#            uploaded_random_forest_classifier = st.sidebar.file_uploader("Upload the Classifier file", type=["joblib"], key='random_forest_classifier_uploader')
+#            if uploaded_random_forest_classifier is not None:
+#                st.session_state['random_forest_classifier'] = uploaded_random_forest_classifier
 
+         # Input for the Google Drive link
+        if st.session_state['random_forest_classifier'] is None:
+            model_link = st.sidebar.text_input("Enter the Google Drive link for the Classifier file", key='model_link_input')
+            if model_link:
+                st.session_state['random_forest_classifier'] = download_model_from_google_drive(model_link)
+                                                                                                
         if uploaded_file is not None and all(st.session_state[key] is not None for key in ['label_encoder', 'word2vec_model', 'random_forest_classifier']):
             comments_file = pd.read_csv(uploaded_file)
             st.subheader("Uploaded Data:")
