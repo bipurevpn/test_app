@@ -10,52 +10,64 @@ import joblib
 from bs4 import BeautifulSoup
 from pathlib import Path
 
+def download_file_from_google_drive(link):
+    # Extract the file ID from the Google Drive link
+    file_id = link.split('/d/')[1].split('/')[0]
+    initial_url = f"https://drive.google.com/uc?export=download&id={file_id}"
 
-def download_and_combine_google_drive_files(link1, link2):
-    # Function to download a single file
-    def download_file(link):
-        file_id = link.split('/d/')[1].split('/')[0]
-        initial_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+    # Session for maintaining persistent connection
+    session = requests.Session()
 
-        session = requests.Session()
-        response = session.get(initial_url, stream=True)
-        token = None
+    # Get the first response
+    response = session.get(initial_url, stream=True)
+    token = None
 
-        for key, value in response.cookies.items():
-            if key.startswith('download_warning'):
-                token = value
-                break
+    # Check if there is a confirmation token (for large files)
+    for key, value in response.cookies.items():
+        if key.startswith('download_warning'):
+            token = value
+            break
 
-        if token:
-            model_url = f"https://drive.google.com/uc?export=download&id={file_id}&confirm={token}"
-        else:
-            model_url = initial_url
+    # If there is a token, append it to the download URL
+    if token:
+        model_url = f"https://drive.google.com/uc?export=download&id={file_id}&confirm={token}"
+    else:
+        model_url = initial_url
 
-        response = session.get(model_url, stream=True)
-        if response.status_code == 200:
-            temp_file = tempfile.NamedTemporaryFile(suffix=".joblib", delete=False)
-            for chunk in response.iter_content(chunk_size=32768):
-                if chunk:
-                    temp_file.write(chunk)
-            temp_file_path = temp_file.name
-            temp_file.close()
-            return temp_file_path
-        else:
-            return None
+    # Download the file
+    response = session.get(model_url, stream=True)
+    if response.status_code == 200:
+        # Save the content to a temporary file
+        temp_file = tempfile.NamedTemporaryFile(suffix=".joblib", delete=False)
+        for chunk in response.iter_content(chunk_size=32768):
+            if chunk:  # filter out keep-alive new chunks
+                temp_file.write(chunk)
+        temp_file_path = temp_file.name
+        temp_file.close()
+        st.write(f"Downloaded file: {temp_file_path}, Size: {Path(temp_file_path).stat().st_size} bytes")
+        return temp_file_path
+    else:
+        st.error("Failed to download the model. Please check the link.")
+        return None
 
-    # Download both files
-    file_path1 = download_file(link1)
-    file_path2 = download_file(link2)
+def combine_and_load_model(link1, link2):
+    file_path1 = download_file_from_google_drive(link1)
+    file_path2 = download_file_from_google_drive(link2)
 
     if file_path1 and file_path2:
-        # Combine both files
         combined_file_path = Path(tempfile.gettempdir()) / "combined_model.joblib"
         with open(combined_file_path, 'wb') as wfd:
             for f in [file_path1, file_path2]:
                 with open(f, 'rb') as fd:
                     wfd.write(fd.read())
                 os.remove(f)  # Remove temporary file
-        return combined_file_path
+        st.write(f"Combined file: {combined_file_path}, Size: {Path(combined_file_path).stat().st_size} bytes")
+
+        # Load the model using an alternate method
+        with open(combined_file_path, 'rb') as f:
+            model_data = f.read()
+        model = joblib.loads(model_data)
+        return model
     else:
         return None
 
@@ -129,11 +141,9 @@ class StreamlitApp:
             model_link1 = st.sidebar.text_input("Enter the first Google Drive link for the Classifier file", key='model_link_input1')
             model_link2 = st.sidebar.text_input("Enter the second Google Drive link for the Classifier file", key='model_link_input2')
             if model_link1 and model_link2:
-                combined_model_path = download_and_combine_google_drive_files(model_link1, model_link2)
-                if combined_model_path:
-                    st.session_state['random_forest_classifier'] = joblib.load(combined_model_path)
-                else:
-                    st.error("Failed to download and combine the models. Please check the links.")
+                st.session_state['random_forest_classifier'] = combine_and_load_model(model_link1, model_link2)
+                if st.session_state['random_forest_classifier'] is None:
+                    st.error("Failed to combine and load the model.")
 
                                                                                                 
         if uploaded_file is not None and all(st.session_state[key] is not None for key in ['label_encoder', 'word2vec_model', 'random_forest_classifier']):
