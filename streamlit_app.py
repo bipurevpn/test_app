@@ -126,9 +126,15 @@ class StreamlitApp:
 
          # Input for the Google Drive link
         if st.session_state['random_forest_classifier'] is None:
-            model_link = st.sidebar.text_input("Enter the Google Drive link for the Classifier file", key='model_link_input')
-            if model_link:
-                st.session_state['random_forest_classifier'] = download_model_from_google_drive(model_link)
+            model_link1 = st.sidebar.text_input("Enter the first Google Drive link for the Classifier file", key='model_link_input1')
+            model_link2 = st.sidebar.text_input("Enter the second Google Drive link for the Classifier file", key='model_link_input2')
+            if model_link1 and model_link2:
+                combined_model_path = download_and_combine_google_drive_files(model_link1, model_link2)
+                if combined_model_path:
+                    st.session_state['random_forest_classifier'] = joblib.load(combined_model_path)
+                else:
+                    st.error("Failed to download and combine the models. Please check the links.")
+
                                                                                                 
         if uploaded_file is not None and all(st.session_state[key] is not None for key in ['label_encoder', 'word2vec_model', 'random_forest_classifier']):
             comments_file = pd.read_csv(uploaded_file)
