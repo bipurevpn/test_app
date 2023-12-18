@@ -7,17 +7,44 @@ from sentiment_analysis import SentimentAnalysis
 import tempfile
 import os
 import joblib
+from bs4 import BeautifulSoup
 
 def download_model_from_google_drive(link):
     # Extract the file ID from the Google Drive link
     file_id = link.split('/d/')[1].split('/')[0]
-    model_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+    initial_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+
+    # Session for maintaining persistent connection
+    session = requests.Session()
+
+    # Get the first response
+    response = session.get(initial_url, stream=True)
+    token = None
+
+    # Check if there is a confirmation token (for large files)
+    for key, value in response.cookies.items():
+        if key.startswith('download_warning'):
+            token = value
+            break
+
+    # If there is a token, append it to the download URL
+    if token:
+        model_url = f"https://drive.google.com/uc?export=download&id={file_id}&confirm={token}"
+    else:
+        model_url = initial_url
 
     # Download the file
-    response = requests.get(model_url)
+    response = session.get(model_url, stream=True)
     if response.status_code == 200:
-        model_file = BytesIO(response.content)
-        model = joblib.load(model_file)
+        # Save the content to a temporary file
+        with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as tmp_file:
+            for chunk in response.iter_content(chunk_size=32768):
+                if chunk:  # filter out keep-alive new chunks
+                    tmp_file.write(chunk)
+            tmp_file_path = tmp_file.name
+        
+        # Load the model from the temporary file
+        model = joblib.load(tmp_file_path)
         return model
     else:
         st.error("Failed to download the model. Please check the link.")
